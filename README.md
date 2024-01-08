@@ -5,7 +5,7 @@
 # Substance Painter
 ## 1: Setup an export template like the following
  
-![img.png](img.png)
+![misc/substance.png](Screenshot of Substance Painter export settings)
 Note:
 1. There is an idmap exported, which is used to determine which texture belongs to which object.
 2. UDIMS (if used) are sorted into folders (and the script needs to be run against each folder separately, no UDIM support yet)
