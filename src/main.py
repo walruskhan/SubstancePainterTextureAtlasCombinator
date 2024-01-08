@@ -4,85 +4,119 @@ import re
 from PIL import Image
 from returns.result import Result, Success, Failure
 import argparse
+from typing import Self
 
 groupregex = re.compile(u'.*_(diffuse|basecolor|normal|height|specular|glossiness).*', re.IGNORECASE)
 idregex = re.compile(u'.*(id).*', re.IGNORECASE)
+udimregex = re.compile(u'(\d{4}|u\d+_v\d+)\.', re.IGNORECASE)
+
+class Texture:
+    def __init__(self, filename: str):
+        self.filename = filename
+
+        type = self._get_texture_type(filename)
+        if type is Failure:
+            raise Exception("Failed to get texture type")
+
+        self.type = type.unwrap()[0]
+        self.groupname = type.unwrap()[1]
+
+        m = udimregex.match(filename)
+        self.udim = m.group(1) if m else None
+
+        self._size = None
+        self._idmap = None
+
+    @property
+    def normalized_name(self) -> str:
+        return self.filename.replace(self.groupname, "")
+
+    @property
+    def size(self) -> (int, int):
+        if not self._size:
+            with Image.open(self.filename) as file:
+                self._size = file.size
+
+        return self._size
+
+    def _get_texture_type(self, filename: str) -> Result[(str, str), None]:
+        m = idregex.match(filename)
+        if m:
+            return Success(("idmap", m.group(1)))
+
+        m = groupregex.match(filename)
+        if m:
+            return Success((m.group(1), m.group(1)))
+
+        return Failure(None)
+
+    @property
+    def idmap(self):
+        return self._idmap
+
+    def find_idmap(self, idmaps):
+        if self.type == "idmap":
+            return None
+
+        for idmap in idmaps:
+            if self.normalized_name == idmap.normalized_name and idmap.type == "idmap":
+                self._idmap = idmap
+                return self._idmap
+
+        return None
 
 def get_input_files(fileglob: str) -> list[str]:
     return glob.glob(fileglob, recursive=True, include_hidden=True)
 
-def get_texture_type(filename: str) -> Result[(str, str), None]:
-    m = idregex.match(filename)
-    if m:
-        return Success(("idmap", m.group(1)))
-
-    m = groupregex.match(filename)
-    if m:
-        return Success((m.group(1), m.group(1)))
-
-    return Failure(None)
-
-def make_sets(filenames: list[str]) -> dict[str, list[(str, str)]]:
+def make_sets(filenames: list[str]) -> dict[str, list[Texture]]:
     groups = {}
     idmaps = []
-    idmap_name = None
 
     # find all textures and sort into idmap/other
     for filename in filenames:
-        type = get_texture_type(filename)
-        match type:
-            case Success(("idmap", name)):
-                idmaps.append(filename)
-                idmap_name = name
-                continue
-            case Success((type, name)):
-                if name not in groups:
-                    groups[name] = []
-                groups[name].append(filename)
+        t = Texture(filename)
+        match t.type:
+            case "idmap":
+                idmaps.append(t)
                 continue
             case _:
-                print(f"Failed to match {filename}")
+                if t.groupname not in groups:
+                    groups[t.groupname] = []
+                groups[t.groupname].append(t)
 
-    matched_groups = {}
+    # Associate each texture with it's idmap
+    for (groupname, textures) in groups.items():
+        for texture in textures:
+            idmap = texture.find_idmap(idmaps)
 
-    # match idmaps to textures
-    normalized_idmapnames = [(x.replace(idmap_name, ""), x) for x in idmaps] # tuple of normalized (name without type) and actual filename
-    for (groupname, filenames) in groups.items():
-        normalized_filenames = [(x.replace(groupname, ""), x) for x in filenames] # tuple of normalized (name without type) and actual filename
+            if not idmap:
+                raise f"Could not find idmap for {texture.filename}"
 
-        for (idmap_normalized, idmap_name) in normalized_idmapnames:
-            for (texture_normalized, texture_name) in normalized_filenames:
-                if idmap_normalized == texture_normalized:
-                    if groupname not in matched_groups:
-                        matched_groups[groupname] = []
+    return groups
 
-                    matched_groups[groupname].append((idmap_name, texture_name))
-
-    return matched_groups
-
-def get_size(filesnames: list[str]) -> Result[(int, int), None]:
+def get_size(textures: list[Texture]) -> Result[(int, int), None]:
     sizes = []
-    for filename in filesnames:
-        with Image.open(filename) as file:
-            sizes.append(file.size)
+    for texture in textures:
+        sizes.append(texture.size)
+        if texture.idmap:
+            sizes.append(texture.idmap.size)
 
-    if not len(set(sizes)) == 1:
+    if len(set(sizes)) != 1:
         return Failure(None)
 
     return Success(sizes[0])
 
-def combine(filenames: list[(str, str)], fname: str, outdir: str) -> Result(list[str]):
-    size = get_size([x[1] for x in filenames])
+def combine(textures: list[Texture], fname: str, outdir: str) -> Result(list[str]):
+    size = get_size(textures)
     if size is Failure:
         return Failure(None)
 
     with Image.new("RGB", size.unwrap(), (0, 0, 0)) as outfile:
+        for curr in textures:
+            (width, height) = curr.idmap.size
 
-        for (idmap, filename) in filenames:
-            with Image.open(idmap) as idmap:
-                (width, height) = idmap.size
-
-                with Image.open(filename) as texture:
+            with Image.open(curr.filename) as texture:
+                with Image.open(curr.idmap.filename) as idmap:
                     # When idmap pixel is not black, blit pixel from texture to output
                     for y in range(height):
                         for x in range(width):
@@ -104,8 +138,8 @@ def start(fileglob: str, outdir: str):
     sets = make_sets(filenames)
     print(sets)
 
-    for (groupname, filenames) in sets.items():
-        print(combine(filenames, groupname, outdir))
+    for (groupname, textures) in sets.items():
+        print(combine(textures, groupname, outdir))
 
 def main():
     parser = argparse.ArgumentParser(description='Combine textures from multiple maps into a single texture')
