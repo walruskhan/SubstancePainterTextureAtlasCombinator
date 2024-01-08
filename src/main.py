@@ -1,14 +1,10 @@
 import glob
 import os
-import re
-from PIL import Image
-from returns.result import Result, Success, Failure
 import argparse
 
 from src.Texture import Texture
 from src.TextureSet import TextureSet
 from src.UDIM import UDIM
-
 
 def load_textures(fileglob: str) -> list[Texture]:
     files = glob.glob(fileglob, recursive=True, include_hidden=True)
@@ -61,12 +57,6 @@ def start(fileglob: str, outdir: str):
 
     for udim in udims.values():
         udim.write_to(outdir)
-
-    # (sets, idmaps) = make_texturesets(textures)
-    # print(sets, idmaps)
-    #
-    # for (_, textureset) in sets.items():
-    #     textureset.write_to(idmaps, outdir)
 
 def main():
     parser = argparse.ArgumentParser(description='Combine textures from multiple maps into a single texture')
