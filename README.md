@@ -2,6 +2,11 @@ Python script for combining textures exported from Substance Painter into a sing
 Substance Painter creates a separate set of textures (diffuse, height, normal, etc...) for each material (e.g. body, eyes, clothes).
 This script will combine all textures of the same type (e.g. all diffuse, all normal etc...) for the same UDIM into a single texture atlas.
 
+e.g.
+From This:
+![Individual texture files for each material exported from substance painter](misc/from.png)
+To This:
+![Combined texture atlases (with UDIMs)](misc/to.png)
 
 # Usage
 1. Configure Substance Painter (or your texturing program) to export textures and an idmap.
