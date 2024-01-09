@@ -1,3 +1,5 @@
+import logging
+
 from src.common import groupregex, udimregex
 from PIL import Image
 
@@ -5,9 +7,11 @@ from PIL import Image
 class Texture:
     def __init__(self, filename: str):
         self.filename = filename
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         m = groupregex.match(filename)
         if not m:
+            self._logger.error(f"Failed to get texture type {filename}")
             raise Exception(f"Failed to get texture type {filename}")
         self._type = m.group(1)
 

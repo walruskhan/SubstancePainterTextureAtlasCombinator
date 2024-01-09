@@ -1,3 +1,5 @@
+import logging
+
 from PIL import Image
 from returns.result import Result, Success, Failure
 from src.Texture import Texture
@@ -15,6 +17,7 @@ class TextureSet:
         self._type = type
         self._udim = None
         self._size = None
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def __repr__(self):
         return f"<TextureSet type='{self.type}' udim='{self._udim}' count='{len(self._textures.keys())}' />"
@@ -84,7 +87,7 @@ class TextureSet:
 
             udim_segment = f".{udim}" if udim else ""
             path = os.path.join(outdir, f"{self._type}{udim_segment}.png")
-            print(f"Wrote {path}")
+            self._logger.info(f"Wrote {path}")
             outfile.save(path)
 
 def find_idmap(idmaps, nominal_name) -> Result[IdMap, None]:

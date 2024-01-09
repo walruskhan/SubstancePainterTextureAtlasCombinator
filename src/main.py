@@ -1,8 +1,10 @@
 import os
 import argparse
+import logging
 
 from src.utils import load_textures, process_textures
 
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
 def start(fileglob: str, outdir: str):
     os.makedirs(outdir, exist_ok=True)
