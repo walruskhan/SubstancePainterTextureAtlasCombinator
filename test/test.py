@@ -36,12 +36,12 @@ def test_noudims():
                         assert f.getpixel((x, y)) == g.getpixel((x, y))
 
 def test_udims():
-    with tempfile.TemporaryDirectory() as outdir:
+    with tempfile.TemporaryDirectory(delete=False) as outdir:
         textures = load_textures("./data/udim/*.png")
         assert len(textures) == 12
 
         udims = process_textures(textures)
-        assert len(udims) == 1
+        assert len(udims) == 2
 
         for udim in udims.values():
             udim.write_to(outdir)
