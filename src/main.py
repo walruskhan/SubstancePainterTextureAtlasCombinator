@@ -1,53 +1,8 @@
-import glob
 import os
 import argparse
 
-from src.Texture import Texture
-from src.TextureSet import TextureSet
-from src.UDIM import UDIM
+from src.utils import load_textures, process_textures
 
-def load_textures(fileglob: str) -> list[Texture]:
-    files = glob.glob(fileglob, recursive=True, include_hidden=True)
-    return [Texture(f) for f in files]
-
-def make_texturesets(textures: list[Texture]) -> (dict[str, TextureSet], list[Texture]):
-    sets = {}
-    idmaps = []
-
-    for texture in textures:
-        if texture.type is None:
-            raise Exception(f"Failed to get texture type for {texture.filename}")
-
-        # If this is an idmap, add it to the idmap list and continue
-        if texture.is_idmap:
-            idmaps.append(texture)
-            continue
-
-        # If this is not an idmap, add it to the textureset list
-        key = (texture.type, texture.udim)
-        if texture.type not in sets:
-            sets[key] = TextureSet(texture.type)
-        sets[key].add(texture)
-
-    return sets, idmaps
-
-def process_textures(textures: list[Texture]) -> dict[str|None, UDIM]:
-    idmaps = []
-    udims = {}
-
-    for texture in textures:
-        match texture.type:
-            case "idmap":
-                idmaps.append(texture)
-            case _:
-                if texture.udim not in udims:
-                    udims[texture.udim] = UDIM()
-                udims[texture.udim].add(texture)
-
-    for idmap in idmaps:
-        udims[idmap.udim].add(idmap)
-
-    return udims
 
 def start(fileglob: str, outdir: str):
     os.makedirs(outdir, exist_ok=True)
