@@ -74,10 +74,10 @@ class TextureSet:
                                 for x in range(self._size[0]):
                                     pixel = idmapfile.getpixel((x, y))
 
-                                    if type(pixel) is tuple and pixel[2] == 0:
+                                    if isinstance(pixel, tuple) and pixel[2] == 0:
                                         continue
 
-                                    if type(pixel) is int and pixel == 0:
+                                    if isinstance(pixel, int) and pixel == 0:
                                         continue
 
                                     outfile.putpixel((x, y), texturefile.getpixel((x, y)))
