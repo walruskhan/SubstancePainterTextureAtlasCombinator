@@ -12,6 +12,10 @@ To This:
 1. Configure Substance Painter (or your texturing program) to export textures and an idmap.
 2. Run `python3 main.py` in the root directory of this project.
 
+# Setup
+1. Install Python 3.x
+2. Run `pip3 install -r requirements.txt` to install required dependencies
+
 # Substance Painter
 ## 1: Setup an export template like the following
  
